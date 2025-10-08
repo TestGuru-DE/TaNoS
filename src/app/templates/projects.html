@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>TaNoS – Projekte</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <style>
+      body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin:24px; }
+      header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+      .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+      input, button { padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; }
+      button { cursor:pointer; }
+      table { border-collapse: collapse; width:100%; margin-top:12px; }
+      th, td { border:1px solid #e5e7eb; padding:8px; text-align:left; vertical-align: middle; }
+      th { background:#f8fafc; }
+      .row { display:grid; gap:12px; grid-template-columns: 2fr auto; align-items:end; max-width:520px; }
+      .mt-3 { margin-top:12px; }
+      a.btn { padding:6px 10px; border:1px solid #cbd5e1; border-radius:10px; text-decoration:none; color:inherit; }
+      nav a { margin-left:12px; }
+      form.inline { display: inline; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>TaNoS – Projekte</h1>
+      <nav>
+        <a class="btn" href="/ui/projects">Projekte</a>
+        <a class="btn" href="/ui/generate">Generate</a>
+        <a class="btn" href="/docs" target="_blank">API-Docs</a>
+      </nav>
+    </header>
+
+    <div class="card">
+      <!-- Projekt anlegen -->
+      <form class="row"
+            method="post"
+            hx-post="/ui/projects/create"
+            hx-target="#projects-list"
+            hx-swap="innerHTML">
+        <div>
+          <label for="name"><strong>Neues Projekt</strong></label>
+          <input id="name" name="name" placeholder="Name des Projekts" required />
+        </div>
+        <div>
+          <button type="submit">Anlegen</button>
+        </div>
+      </form>
+
+      <!-- Projektliste (durch HTMX-Calls wird dieser Block ersetzt) -->
+      <div id="projects-list" class="mt-3">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Name</th><th>Aktion</th></tr>
+          </thead>
+          <tbody id="projects-tbody">
+            {% for p in projects %}
+            <tr>
+              <td>{{ p.id }}</td>
+              <td>
+                <!-- Umbenennen -->
+                <form class="inline"
+                      method="post"
+                      hx-post="/ui/projects/rename"
+                      hx-target="#projects-list"
+                      hx-swap="innerHTML">
+                  <input type="hidden" name="pid" value="{{ p.id }}" />
+                  <input name="name" value="{{ p.name }}" />
+                  <button type="submit">Umbenennen</button>
+                </form>
+              </td>
+              <td>
+                <a class="btn" href="/ui/projects/{{ p.id }}/data">Öffnen</a>
+
+                <!-- Löschen (blockiert, wenn Generierungen existieren) -->
+                <form class="inline"
+                      method="post"
+                      hx-post="/ui/projects/delete"
+                      hx-target="#projects-list"
+                      hx-swap="innerHTML"
+                      onsubmit="return confirm('Projekt löschen? (blockiert, wenn Generierungen existieren)');">
+                  <input type="hidden" name="pid" value="{{ p.id }}" />
+                  <button type="submit">Löschen</button>
+                </form>
+
+                <!-- Force löschen (inkl. Generierungen & abhängiger Daten) -->
+                <form class="inline"
+                      method="post"
+                      hx-post="/ui/projects/delete_force"
+                      hx-target="#projects-list"
+                      hx-swap="innerHTML"
+                      onsubmit="return confirm('PROJEKT samt Generierungen und Daten endgültig löschen?');">
+                  <input type="hidden" name="pid" value="{{ p.id }}" />
+                  <button type="submit" style="margin-left:6px;">Force löschen</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+            {% if projects|length == 0 %}
+            <tr><td colspan="3"><em>Keine Projekte vorhanden.</em></td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

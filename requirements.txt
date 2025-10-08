@@ -1,0 +1,10 @@
+PySide6>=6.8.0.2
+pytest>=7.4
+pandas>=2.1
+openpyxl>=3.1
+requests
+fastapi 
+uvicorn 
+sqlalchemy 
+jinja2 
+httpx

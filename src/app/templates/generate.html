@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>TaNoS – Generate</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <!-- HTMX CDN -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
+      header { display:flex; align-items:center; justify-content:space-between; }
+      .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+      label { display:block; font-weight:600; margin-bottom:6px; }
+      select, button { padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; }
+      button { cursor:pointer; }
+      table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+      th, td { border:1px solid #e5e7eb; padding:8px; text-align:left; }
+      th { background:#f8fafc; }
+      .row { display:grid; gap:12px; grid-template-columns: 1fr 1fr 1fr auto; align-items:end; }
+      .overflow-x-auto { overflow-x: auto; }
+      .mt-3 { margin-top: 12px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>TaNoS – Test Case Designer</h1>
+      <nav>
+        <a class="btn" href="/ui/projects">Projekte</a>
+        <a class="btn" href="/docs" target="_blank">API-Docs</a>
+      </nav>
+
+    </header>
+
+    <div class="card">
+      <form class="row"
+      method="post"
+      hx-post="/ui/generate/run"
+      hx-target="#result"
+      hx-swap="innerHTML">
+  <div>
+    <label>Projekt</label>
+    <select id="pid" name="pid">
+      {% for p in projects %}
+        <option value="{{ p.id }}">{{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Strategie</label>
+    <select id="strategy" name="strategy">
+      <option value="pairwise">Pairwise (empfohlen)</option>
+      <option value="all">All Combinations</option>
+      <option value="each">Each Choice</option>
+    </select>
+  </div>
+  <div>
+    <label>Aktion</label>
+    <button type="submit">Generieren</button>
+  </div>
+</form>
+
+<div id="result" class="mt-3">
+  <em>Wähle Projekt und Strategie, dann auf „Generieren“.</em>
+</div>
+
+    </div>
+  </body>
+</html>
+

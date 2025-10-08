@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>TaNoS – Datenmodell & Regeln</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <!-- HTMX & SortableJS -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+      body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin:24px; }
+      header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+      .grid { display:grid; gap:16px; grid-template-columns: 1fr; }
+      @media (min-width: 1100px) { .grid { grid-template-columns: 1.2fr 0.8fr; } }
+      .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+      input, button, select, textarea { padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; }
+      button { cursor:pointer; }
+      table { border-collapse: collapse; width:100%; margin-top:12px; }
+      th, td { border:1px solid #e5e7eb; padding:8px; text-align:left; vertical-align: top; }
+      th { background:#f8fafc; }
+      .row { display:grid; gap:12px; grid-template-columns: 2fr 1fr auto; align-items:end; max-width:720px; }
+      .row2 { display:grid; gap:12px; grid-template-columns: 2fr 1fr auto auto auto auto; align-items:end; max-width:1100px; }
+      .row-inline { display:flex; flex-wrap: wrap; gap:10px 12px; align-items:end; }
+      .mt-3 { margin-top:12px; }
+      .mb-2 { margin-bottom:8px; }
+      .subtle { color:#64748b; }
+      .drag-handle { cursor:grab; color:#64748b; }
+      a.btn { padding:6px 10px; border:1px solid #cbd5e1; border-radius:10px; text-decoration:none; color:inherit; }
+      nav a { margin-left:12px; }
+      form.inline { display:inline; }
+      h2 { margin: 0 0 8px 0; font-size: 18px; }
+      fieldset { border:1px dashed #e5e7eb; border-radius:12px; padding:12px; }
+      legend { padding: 0 6px; color:#0f172a; }
+      .hint { font-size: 12px; color:#64748b; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Projekt: {{ project.name }}</h1>
+      <nav>
+        <a class="btn" href="/ui/projects">Projekte</a>
+        <a class="btn" href="/ui/generate">Generate</a>
+        <a class="btn" href="/docs" target="_blank">API-Docs</a>
+      </nav>
+    </header>
+
+    <div class="grid">
+      <!-- Linke Spalte: Kategorien & Werte -->
+      <div class="card">
+        <h2>Datenmodell (Kategorien & Werte)</h2>
+
+        <!-- Kategorie anlegen -->
+        <form class="row"
+              method="post"
+              hx-post="/ui/categories/create"
+              hx-target="#categories"
+              hx-swap="innerHTML">
+          <input type="hidden" name="pid" value="{{ project.id }}" />
+          <div>
+            <label>Kategorie</label>
+            <input name="name" placeholder="z. B. Farbe" required />
+          </div>
+          <div>
+            <label>Reihenfolge</label>
+            <input name="order_index" type="number" value="0" />
+          </div>
+          <div>
+            <button type="submit">Kategorie anlegen</button>
+          </div>
+        </form>
+
+        <!-- Kategorien + Werte -->
+        <div id="categories" class="mt-3">
+          <table>
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Kategorie</th>
+                <th>Werte</th>
+                <th>Aktion</th>
+              </tr>
+            </thead>
+            <tbody id="cat-tbody">
+              {% for c in categories %}
+              <tr data-id="{{ c.id }}">
+                <td class="drag-handle">↕ {{ c.order_index }}</td>
+                <td>
+                  <!-- Kategorie umbenennen -->
+                  <form class="inline"
+                        method="post"
+                        hx-post="/ui/categories/rename"
+                        hx-target="#categories"
+                        hx-swap="innerHTML">
+                    <input type="hidden" name="cid" value="{{ c.id }}" />
+                    <input name="name" value="{{ c.name }}" />
+                    <button type="submit">Umbenennen</button>
+                  </form>
+                  <span class="subtle"> (#{{ c.id }})</span>
+                </td>
+                <td>
+                  <!-- Werte der Kategorie -->
+                  <div id="values-of-{{ c.id }}">
+                    <!-- Wert anlegen -->
+                    <form class="row2"
+                          method="post"
+                          hx-post="/ui/values/create"
+                          hx-target="#values-of-{{ c.id }}"
+                          hx-swap="innerHTML">
+                      <input type="hidden" name="cid" value="{{ c.id }}" />
+                      <div>
+                        <label>Neuer Wert</label>
+                        <input name="value" placeholder="z. B. Rot" required />
+                      </div>
+                      <div>
+                        <label>Risk</label>
+                        <input name="risk_weight" type="number" value="1" min="1" />
+                      </div>
+                      <div>
+                        <label>Erlaubt</label>
+                        <input name="allowed" type="checkbox" checked />
+                      </div>
+                      <div>
+                        <label>Typ</label>
+                        <select name="vtype">
+                          <option value="string">string</option>
+                          <option value="integer">integer</option>
+                          <option value="number">number</option>
+                          <option value="boolean">boolean</option>
+                          <option value="date">date</option>
+                        </select>
+                      </div>
+                      <div>
+                        <button type="submit">Hinzufügen</button>
+                      </div>
+                    </form>
+
+                    <!-- Werte-Tabelle -->
+                    <table class="mt-3">
+                      <thead>
+                        <tr><th>ID</th><th>Bearbeiten</th><th>Risk</th><th>Aktion</th></tr>
+                      </thead>
+                      <tbody>
+                        {% for v in values_by_cat[c.id] %}
+                        <tr>
+                          <td>{{ v.id }}</td>
+                          <td>
+                            <!-- Wert bearbeiten (Name/Risk/Allowed/Typ) -->
+                            <form class="inline"
+                                  method="post"
+                                  hx-post="/ui/values/rename"
+                                  hx-target="#values-of-{{ c.id }}"
+                                  hx-swap="innerHTML">
+                              <input type="hidden" name="vid" value="{{ v.id }}" />
+                              <input name="value" value="{{ v.value }}" />
+                              <input name="risk_weight" type="number" value="{{ v.risk_weight }}" min="1" style="width:80px" />
+
+                              <label style="margin-left:8px;">Erlaubt</label>
+                              <input name="allowed" type="checkbox" {% if v.allowed %}checked{% endif %} />
+
+                              <label style="margin-left:8px;">Typ</label>
+                              <select name="vtype">
+                                {% for t in ["string","integer","number","boolean","date"] %}
+                                  <option value="{{ t }}" {% if v.vtype==t %}selected{% endif %}>{{ t }}</option>
+                                {% endfor %}
+                              </select>
+
+                              <button type="submit" style="margin-left:8px;">Speichern</button>
+                            </form>
+                          </td>
+                          <td>{{ v.risk_weight }}</td>
+                          <td>
+                            <!-- Wert löschen (blockiert bei Generierungen) -->
+                            <form class="inline"
+                                  method="post"
+                                  hx-post="/ui/values/delete"
+                                  hx-target="#values-of-{{ c.id }}"
+                                  hx-swap="innerHTML"
+                                  onsubmit="return confirm('Wert löschen? (blockiert, wenn Generierungen existieren)');">
+                              <input type="hidden" name="vid" value="{{ v.id }}" />
+                              <button type="submit">Löschen</button>
+                            </form>
+
+                            <!-- Force löschen -->
+                            <form class="inline"
+                                  method="post"
+                                  hx-post="/ui/values/delete_force"
+                                  hx-target="#values-of-{{ c.id }}"
+                                  hx-swap="innerHTML"
+                                  onsubmit="return confirm('Wert inkl. Testfallwerte endgültig löschen?');">
+                              <input type="hidden" name="vid" value="{{ v.id }}" />
+                              <button type="submit" style="margin-left:6px;">Force löschen</button>
+                            </form>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                        {% if values_by_cat[c.id]|length == 0 %}
+                        <tr><td colspan="4"><em>Keine Werte.</em></td></tr>
+                        {% endif %}
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+                <td>
+                  <!-- Kategorie löschen (blockiert bei Generierungen) -->
+                  <form class="inline"
+                        method="post"
+                        hx-post="/ui/categories/delete"
+                        hx-target="#categories"
+                        hx-swap="innerHTML"
+                        onsubmit="return confirm('Kategorie mit allen Werten löschen? (blockiert, wenn Generierungen existieren)');">
+                    <input type="hidden" name="cid" value="{{ c.id }}" />
+                    <button type="submit">Löschen</button>
+                  </form>
+
+                  <!-- Force löschen -->
+                  <form class="inline"
+                        method="post"
+                        hx-post="/ui/categories/delete_force"
+                        hx-target="#categories"
+                        hx-swap="innerHTML"
+                        onsubmit="return confirm('Kategorie inkl. Werte und Testfallwerte endgültig löschen?');">
+                    <input type="hidden" name="cid" value="{{ c.id }}" />
+                    <button type="submit" style="margin-left:6px;">Force löschen</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if categories|length == 0 %}
+              <tr><td colspan="4"><em>Noch keine Kategorien, lege oben eine an.</em></td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Rechte Spalte: Geschäftsregeln -->
+      <div class="card">
+        <h2>Regeln (Geschäftslogik)</h2>
+
+        <!-- Regeln anlegen -->
+        <fieldset class="mb-2">
+          <legend>Verboten (Paar nicht gemeinsam)</legend>
+          <form class="row-inline"
+                method="post"
+                hx-post="/ui/rules/create"
+                hx-target="#rules-block"
+                hx-swap="innerHTML">
+            <input type="hidden" name="pid" value="{{ project.id }}" />
+            <input type="hidden" name="rtype" value="exclude" />
+
+            <div>
+              <label>Wenn Kategorie</label>
+              <select id="ex_if_cat" name="if_category_id"></select>
+            </div>
+            <div>
+              <label>Wert</label>
+              <select id="ex_if_val" name="if_value"></select>
+            </div>
+
+            <div>
+              <label>und Kategorie</label>
+              <select id="ex_then_cat" name="then_category_id"></select>
+            </div>
+            <div>
+              <label>Wert</label>
+              <select id="ex_then_val" name="then_value"></select>
+            </div>
+
+            <div>
+              <button type="submit">Regel anlegen</button>
+            </div>
+          </form>
+          <p class="hint">Beispiel: Gewicht=500g × Größe=groß ist verboten.</p>
+        </fieldset>
+
+        <fieldset class="mb-2">
+          <legend>Abhängig (Wenn/Dann)</legend>
+          <form class="row-inline"
+                method="post"
+                hx-post="/ui/rules/create"
+                hx-target="#rules-block"
+                hx-swap="innerHTML">
+            <input type="hidden" name="pid" value="{{ project.id }}" />
+            <input type="hidden" name="rtype" value="dependency" />
+
+            <div>
+              <label>Wenn Kategorie</label>
+              <select id="dep_if_cat" name="if_category_id"></select>
+            </div>
+            <div>
+              <label>Wert</label>
+              <select id="dep_if_val" name="if_value"></select>
+            </div>
+
+            <div>
+              <label>Dann Kategorie</label>
+              <select id="dep_then_cat" name="then_category_id"></select>
+            </div>
+            <div>
+              <label>Wert</label>
+              <select id="dep_then_val" name="then_value"></select>
+            </div>
+
+            <div>
+              <button type="submit">Regel anlegen</button>
+            </div>
+          </form>
+          <p class="hint">Beispiel: Wenn Gewicht=über 1000 g, dann Versandart=Päckchen.</p>
+        </fieldset>
+
+        <fieldset class="mb-2">
+          <legend>Kombinieren (Fan-out)</legend>
+          <form class="row-inline"
+                method="post"
+                hx-post="/ui/rules/create"
+                hx-target="#rules-block"
+                hx-swap="innerHTML">
+            <input type="hidden" name="pid" value="{{ project.id }}" />
+            <input type="hidden" name="rtype" value="combine" />
+
+            <div>
+              <label>Wenn Kategorie</label>
+              <select id="co_if_cat" name="if_category_id"></select>
+            </div>
+            <div>
+              <label>Wert</label>
+              <select id="co_if_val" name="if_value"></select>
+            </div>
+
+            <div>
+              <label>Dann Kategorie</label>
+              <select id="co_then_cat" name="then_category_id"></select>
+            </div>
+            <div>
+              <label>Zielwerte (Mehrfachauswahl)</label>
+              <select id="co_then_vals" name="then_values" multiple size="6" style="min-width:220px;"></select>
+              <div class="hint">Tipp: Strg (Windows) bzw. ⌘ (macOS) gedrückt halten, um mehrere Werte auszuwählen.</div>
+            </div>
+
+            <div>
+              <button type="submit">Regel anlegen</button>
+            </div>
+          </form>
+          <p class="hint">Beispiel: Wenn Versandart=Päckchen, erzeuge jeweils Testfälle für Zielland ∈ [DE, US, FR].</p>
+        </fieldset>
+
+        <!-- Aktuelle Regeln (Server rendert den Block) -->
+        <div class="mt-3" id="rules-block">
+          {{ rules_block_html | safe }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Drag&Drop: Reihenfolge speichern -->
+    <script>
+      const tbody = document.getElementById('cat-tbody');
+      if (tbody) {
+        new Sortable(tbody, {
+          handle: '.drag-handle',
+          animation: 150,
+          onEnd: function () {
+            const ids = Array.from(tbody.querySelectorAll('tr[data-id]')).map(tr => tr.getAttribute('data-id'));
+            htmx.ajax('POST', '/ui/categories/reorder', {
+              target: '#categories',
+              swap: 'innerHTML',
+              values: { pid: '{{ project.id }}', order: ids.join(',') }
+            });
+          }
+        });
+      }
+    </script>
+
+    <!-- Kategorien/Werte für Regel-Formulare: Dropdowns dynamisch füllen -->
+    <script>
+      // Daten in JS
+      const CATEGORIES = [
+        {% for c in categories %}
+          { id: {{ c.id }}, name: {{ c.name|tojson }} },
+        {% endfor %}
+      ];
+      const CAT_VALUES = {
+        {% for c in categories %}
+          {{ c.id }}: [
+            {% for v in values_by_cat[c.id] %}
+              {{ v.value|tojson }},
+            {% endfor %}
+          ],
+        {% endfor %}
+      };
+
+      function fillCategory(selectEl) {
+        selectEl.innerHTML = "";
+        for (const c of CATEGORIES) {
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = c.name;
+          selectEl.appendChild(opt);
+        }
+      }
+
+      function fillValuesForCategory(catSelectEl, valSelectEl) {
+        const catId = catSelectEl.value;
+        const values = CAT_VALUES[catId] || [];
+        valSelectEl.innerHTML = "";
+        for (const val of values) {
+          const opt = document.createElement("option");
+          opt.value = val;
+          opt.textContent = val;
+          valSelectEl.appendChild(opt);
+        }
+      }
+
+      function wirePair(catId, valId) {
+        const catSel = document.getElementById(catId);
+        const valSel = document.getElementById(valId);
+        fillCategory(catSel);
+        fillValuesForCategory(catSel, valSel);
+        catSel.addEventListener("change", () => fillValuesForCategory(catSel, valSel));
+      }
+
+      document.addEventListener("DOMContentLoaded", function() {
+        // Verboten
+        wirePair("ex_if_cat", "ex_if_val");
+        wirePair("ex_then_cat", "ex_then_val");
+        // Abhängig
+        wirePair("dep_if_cat", "dep_if_val");
+        wirePair("dep_then_cat", "dep_then_val");
+        // Kombinieren
+        const coIfCat = document.getElementById("co_if_cat");
+        const coIfVal = document.getElementById("co_if_val");
+        const coThenCat = document.getElementById("co_then_cat");
+        const coThenVals = document.getElementById("co_then_vals");
+        fillCategory(coIfCat);
+        fillCategory(coThenCat);
+        fillValuesForCategory(coIfCat, coIfVal);
+        // Wenn THEN-Kategorie wechselt → Zielwerte-MultiSelect neu füllen
+        function fillThenMulti() {
+          const catId = coThenCat.value;
+          const values = CAT_VALUES[catId] || [];
+          coThenVals.innerHTML = "";
+          for (const val of values) {
+            const opt = document.createElement("option");
+            opt.value = val;
+            opt.textContent = val;
+            coThenVals.appendChild(opt);
+          }
+        }
+        fillThenMulti();
+        coIfCat.addEventListener("change", () => fillValuesForCategory(coIfCat, coIfVal));
+        coThenCat.addEventListener("change", fillThenMulti);
+      });
+    </script>
+  </body>
+</html>
