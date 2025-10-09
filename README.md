@@ -1,4 +1,8 @@
-# GeTeCaDe - TestCase Designer (Version 5.0)
+pip install -r requirements.txt
+
+starten: uvicorn app.main:app --reload --app-dir src --reload-dir src --port 8010
+
+Aufrufen: http://127.0.0.1:8010/ui/projects
 
 ### Neu in v5.0
 - Export/Import von Testfällen im CSV-Format (Trennzeichen = Semikolon).
